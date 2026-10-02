@@ -1,0 +1,25 @@
+from playwright.sync_api import sync_playwright
+
+with sync_playwright() as p:
+    browser = p.chromium.launch(headless=True)
+    desktop = browser.new_page(viewport={"width": 1440, "height": 1000})
+    desktop.goto('http://127.0.0.1:4173')
+    desktop.wait_for_load_state('networkidle')
+    desktop.screenshot(path='tests/smoke-desktop.png', full_page=True)
+    assert '找回被偷走的' in desktop.locator('h1').inner_text()
+    desktop.get_by_role('button', name='档案室').click()
+    assert desktop.get_by_role('dialog', name='失窃报告').is_visible()
+    desktop.get_by_role('button', name='归档这份报告').click()
+    desktop.get_by_role('button', name='关闭窗口').click()
+    desktop.get_by_role('button', name='浏览器').click()
+    desktop.get_by_placeholder('搜索歌曲、歌手或关键词').fill('Cruel Summer')
+    desktop.get_by_role('button', name='搜索').click()
+    assert 'fever dream high' in desktop.locator('.result-card').inner_text()
+    desktop.get_by_role('button', name='保存搜索记录').click()
+    desktop.get_by_role('button', name='关闭窗口').click()
+    mobile = browser.new_page(viewport={"width": 390, "height": 844})
+    mobile.goto('http://127.0.0.1:4173')
+    mobile.wait_for_load_state('networkidle')
+    mobile.screenshot(path='tests/smoke-mobile.png', full_page=True)
+    assert mobile.locator('.desktop-content').bounding_box()['width'] <= 390
+    browser.close()
