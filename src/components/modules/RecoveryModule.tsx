@@ -98,7 +98,7 @@ export function RecoveryModule({ clues, slots, payload, onSolved }: { clues: Clu
     </div>
     <div className="mnemonic-strip">
       <span>当前助记词</span>
-      <div>{ordered.map((word, index) => <span className={`mnemonic-slot ${word ? 'filled' : ''}`} key={index}><small>{index + 1}</small>{word || '—'}</span>)}</div>
+      <div className="mnemonic-grid">{ordered.map((word, index) => <span className={`mnemonic-slot ${word ? 'filled' : ''}`} key={index}><small>{index + 1}</small><b>{word || '—'}</b></span>)}</div>
       {validation.teachingMode && <p className="teaching-mode-note">教学模式：这组剧情词用于本地演示计算，不连接真实资产。</p>}
     </div>
     <div className="gate-list">

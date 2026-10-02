@@ -6,6 +6,10 @@ import { deriveAddress, derivePrivateKey, deriveSeed, validateMnemonic } from '.
 import { placeCollectedClues } from '../src/lib/clueSlots.ts';
 
 const styles = readFileSync(fileURLToPath(new URL('../src/styles.css', import.meta.url)), 'utf8');
+const indexHtml = readFileSync(fileURLToPath(new URL('../index.html', import.meta.url)), 'utf8');
+const walletSource = readFileSync(fileURLToPath(new URL('../src/lib/wallet.ts', import.meta.url)), 'utf8');
+const knowledgeSource = readFileSync(fileURLToPath(new URL('../src/components/KnowledgePanel.tsx', import.meta.url)), 'utf8');
+const recoverySource = readFileSync(fileURLToPath(new URL('../src/components/modules/RecoveryModule.tsx', import.meta.url)), 'utf8');
 
 globalThis.ethers = {
   utils: {
@@ -103,4 +107,16 @@ test('GitHub Pages deployment keeps the project base and workflow configured', (
   assert.match(viteConfig, /base:\s*process\.env\.GITHUB_ACTIONS\s*\?\s*['"]\/SpringThief\/['"]\s*:\s*['"]\/['"]/);
   assert.match(workflow, /actions\/deploy-pages@v4/);
   assert.match(workflow, /path:\s*['"]?\.\/dist/);
+});
+
+test('ethers is bundled locally instead of relying on a CDN script', () => {
+  assert.doesNotMatch(indexHtml, /cdn\.jsdelivr\.net\/npm\/ethers/);
+  assert.match(walletSource, /import\s*\{\s*ethers(?:\s+as\s+bundledEthers)?\s*\}\s*from\s*['"]ethers['"]/);
+});
+
+test('PBKDF2 uses the neutral black knowledge label and mnemonic uses an explicit grid', () => {
+  assert.match(knowledgeSource, /className="knowledge-algorithm neutral-algorithm"/);
+  assert.match(recoverySource, /className="mnemonic-grid"/);
+  assert.match(styles, /\.knowledge-algorithm\.neutral-algorithm\s*\{[^}]*color:\s*#111/);
+  assert.match(styles, /\.mnemonic-grid\s*\{[^}]*display:\s*grid/);
 });

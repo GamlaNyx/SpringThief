@@ -304,4 +304,4 @@ git check-ignore -v node_modules dist .env
 git log --oneline -1
 ```
 
-仓库中应该有源码、`imgs/`、测试、文档和 `package-lock.json`，不应该有 `node_modules/`、`dist/`、`.env`、私钥或证书文件。
+仓库中应该有源码、`public/imgs/`、测试、文档和 `package-lock.json`，不应该有 `node_modules/`、`dist/`、`.env`、私钥或证书文件。

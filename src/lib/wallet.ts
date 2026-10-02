@@ -1,3 +1,4 @@
+import { ethers as bundledEthers } from 'ethers';
 import { normalizeAddress, normalizePrivateKey, normalizeWords } from './normalize.ts';
 
 export const DERIVATION_PATH = "m/44'/60'/0'/0/0";
@@ -22,9 +23,8 @@ export type MnemonicValidation = {
 };
 
 function ethers(): EthersV5 {
-  const value = (globalThis as typeof globalThis & { ethers?: EthersV5 }).ethers;
-  if (!value) throw new Error('Wallet engine is unavailable. Load ethers before using the recovery desk.');
-  return value;
+  const injected = (globalThis as typeof globalThis & { ethers?: EthersV5 }).ethers;
+  return injected ?? bundledEthers as unknown as EthersV5;
 }
 
 export function validateMnemonic(words: string[], options: { allowTeachingMode?: boolean } = {}): MnemonicValidation {
