@@ -96,3 +96,11 @@ test('XP windows keep long recovery results scrollable instead of clipping the f
   assert.match(styles, /\.window\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s);
   assert.match(styles, /\.window-content\s*\{[^}]*min-height:\s*0;[^}]*overflow:\s*auto;/s);
 });
+
+test('GitHub Pages deployment keeps the project base and workflow configured', () => {
+  const viteConfig = readFileSync(fileURLToPath(new URL('../vite.config.mjs', import.meta.url)), 'utf8');
+  const workflow = readFileSync(fileURLToPath(new URL('../.github/workflows/deploy-pages.yml', import.meta.url)), 'utf8');
+  assert.match(viteConfig, /base:\s*process\.env\.GITHUB_ACTIONS\s*\?\s*['"]\/SpringThief\/['"]\s*:\s*['"]\/['"]/);
+  assert.match(workflow, /actions\/deploy-pages@v4/);
+  assert.match(workflow, /path:\s*['"]?\.\/dist/);
+});

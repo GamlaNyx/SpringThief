@@ -32,7 +32,7 @@
 :root { font-family: Tahoma, Verdana, sans-serif; color: #111; background: #4c91d7; --xp-blue: #245edb; --xp-light: #e9f0ff; --xp-border: #0a3d9e; }
 body { overflow: hidden; background: #4c91d7; }
 .app-root { min-height: 100vh; background: none; }
-.xp-desktop { position: relative; min-height: 100vh; height: 100vh; overflow: hidden; background: #4c91d7 url('/imgs/壁纸.jpeg') center center / cover no-repeat; }
+.xp-desktop { position: relative; min-height: 100vh; height: 100vh; overflow: hidden; background: #4c91d7 center center / cover no-repeat; }
 .xp-desktop::after { content: ''; position: absolute; inset: 0 0 30px; pointer-events: none; background: linear-gradient(180deg, rgba(255,255,255,.08), transparent 14%, rgba(0,0,0,.04)); }
 .xp-desktop-icons { position: absolute; z-index: 1; inset: 14px auto 46px 10px; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; width: 92px; }
 .xp-icon { position: relative; width: 88px; min-height: 74px; padding: 3px 2px; border: 1px solid transparent; background: transparent; color: white; text-shadow: 1px 1px 2px #17315d, -1px -1px 1px rgba(0,0,0,.35); font: 11px Tahoma, sans-serif; line-height: 1.15; text-align: center; cursor: default; }

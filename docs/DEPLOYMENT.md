@@ -2,6 +2,24 @@
 
 本文面向第一次部署网页项目的操作者。项目是 Vite + React 单页应用，生产环境只需要把 `dist/` 静态文件交给 Nginx，不需要在服务器上长期运行 Vite 开发服务器，也不需要占用一个 Node 服务端口。
 
+如果只是举办小规模招新赛，也可以直接使用 GitHub Pages。仓库已经包含自动构建工作流；GitHub Pages 方案不需要购买服务器或配置 Nginx。下面先说明 GitHub Pages，再说明自有服务器方案。
+
+## 0. GitHub Pages（推荐的最省运维方案）
+
+仓库地址：<https://github.com/GamlaNyx/SpringThief>
+
+1. 打开仓库的 **Settings → Pages**。
+2. 在 **Build and deployment → Source** 中选择 **GitHub Actions**。
+3. 推送 `main` 分支，或在 **Actions → Deploy to GitHub Pages → Run workflow** 手动运行。
+4. 等待 `build` 和 `deploy` 两个 job 都变成绿色。
+5. 访问：<https://GamlaNyx.github.io/SpringThief/>。
+
+工作流会自动执行 `npm ci`、`npm test`、`npm run build`，再发布 `dist/`。Vite 在 GitHub Actions 中使用 `/SpringThief/` base，图片从 `public/imgs/` 复制到最终站点，因此项目子路径下的脚本、样式和桌面资源都能正常加载。
+
+GitHub Pages 适合本题的原因：它提供 HTTPS 和静态资源 CDN，不需要开放 `5173`，也不会和其他 Nginx 服务抢端口。它仍然是静态前端，flag 和解码逻辑对参赛者可见；不要把真实密钥或真实资产放入仓库。
+
+如果修改仓库名，必须同步修改 `vite.config.mjs` 和 `vite.config.ts` 中的 Pages base，例如仓库名为 `NewName` 时改为 `/NewName/`。如果绑定自定义域名并从域名根路径提供站点，则应改成 `/`，并在 GitHub Pages 设置中配置 Custom domain。
+
 ## 1. 部署前的安全边界
 
 当前题目的 flag、XOR payload 和解码逻辑都在浏览器端。它适合练习赛和招新题，但不能把它当作真正的保密系统。熟悉开发者工具的参赛者可以查看前端代码并复现解码过程。

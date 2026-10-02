@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { GameDefinition } from '../../types';
+import { assetUrl } from '../../lib/assets';
 
 type Card = { id: number; pair: number; icon: string };
 const iconFiles = ['blender.png', 'cs-network.png', 'evince.png', 'firefox.png', 'gconf-editor.png', 'gmahjongg.png', 'gnobots2.png', 'icecat.png', 'LimeWire.png', 'lpi-translate.png', 'openjdk-6.png', 'sol.png'];
-const iconBase = '/imgs/记忆配对';
+const iconBase = assetUrl('imgs/记忆配对');
 
 function shuffleCards(): Card[] {
   const cards = iconFiles.flatMap((file, pair) => [0, 1].map((copy) => ({ id: pair * 2 + copy, pair, icon: `${iconBase}/${file}` })));
