@@ -21,7 +21,7 @@ npm run build
 npm test
 ```
 
-生产环境部署请参阅 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)。
+服务器端口部署请参阅 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)，默认示例地址为 `http://服务器公网IP:8088/`。
 
 GitHub Pages 部署请在仓库 Settings → Pages 中将 Source 设置为 **GitHub Actions**，推送 `main` 后工作流会自动发布到 `https://GamlaNyx.github.io/SpringThief/`。
 

@@ -18,7 +18,7 @@
 - Cipher terminal contains Caesar shift, keyboard offset, and Morse code.
 - Recovery flow teaches `BIP-39`, `BIP-32/BIP-44`, `secp256k1`, and `Keccak-256` before calculating.
 - Calculations are local-only and use test data; no real wallet, NFT, signing, or transaction is used.
-- Flag is `DLNUCTF{w3lc0m3_t0_w3b3}` and must not be stored as a visible frontend plaintext constant in the challenge runtime.
+- Flag is `DLNUFCG{w3lc0m3_t0_w3b3}` and must not be stored as a visible frontend plaintext constant in the challenge runtime.
 - XOR flag mode treats the 20-byte address as a repeating byte stream so the 24-byte flag can be recovered.
 - The UI must be usable for beginners within 10–20 minutes and expose progressive hints.
 

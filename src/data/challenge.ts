@@ -27,5 +27,5 @@ export const challengeConfig: ChallengeConfig = {
     { id: 'morse', title: '摩斯密码', description: '把点和划翻译成字母。', clueId: 'clue-12' },
   ],
   mnemonic: words.map(([word]) => word).join(' '), derivationPath: "m/44'/60'/0'/0/0",
-  flagMode: 'xor-address', flagPayload: '40da8e7efa0242b74e61f593031deb5d8f3d6d4b37f4f356',
+  flagMode: 'xor-address', flagPayload: '40da8e7eff1543b74e61f593031deb5d8f3d6d4b37f4f356',
 };

@@ -1,165 +1,140 @@
-# 春泥棒部署指南
+# 春泥棒服务器端口部署指南
 
-本文面向第一次部署网页项目的操作者。项目是 Vite + React 单页应用，生产环境只需要把 `dist/` 静态文件交给 Nginx，不需要在服务器上长期运行 Vite 开发服务器，也不需要占用一个 Node 服务端口。
+本文介绍如何把本项目作为静态网页放到已有的 Ubuntu/Debian 服务器上，并通过单独端口访问，例如 `http://服务器公网IP:8088/`。项目使用 Nginx 提供静态文件，不需要在服务器上运行 Vite/Node 服务，也不会改动其他站点的 Nginx 配置。
 
-如果只是举办小规模招新赛，也可以直接使用 GitHub Pages。仓库已经包含自动构建工作流；GitHub Pages 方案不需要购买服务器或配置 Nginx。下面先说明 GitHub Pages，再说明自有服务器方案。
+> 示例端口使用 `8088`。如果该端口已被占用，请选择其他未使用的高位端口（例如 `18080`），并在下文所有配置和防火墙命令中统一替换。
 
-## 0. GitHub Pages（推荐的最省运维方案）
-
-仓库地址：<https://github.com/GamlaNyx/SpringThief>
-
-1. 打开仓库的 **Settings → Pages**。
-2. 在 **Build and deployment → Source** 中选择 **GitHub Actions**。
-3. 推送 `main` 分支，或在 **Actions → Deploy to GitHub Pages → Run workflow** 手动运行。
-4. 等待 `build` 和 `deploy` 两个 job 都变成绿色。
-5. 访问：<https://GamlaNyx.github.io/SpringThief/>。
-
-工作流会自动执行 `npm ci`、`npm test`、`npm run build`，再发布 `dist/`。Vite 在 GitHub Actions 中使用 `/SpringThief/` base，图片从 `public/imgs/` 复制到最终站点，因此项目子路径下的脚本、样式和桌面资源都能正常加载。
-
-GitHub Pages 适合本题的原因：它提供 HTTPS 和静态资源 CDN，不需要开放 `5173`，也不会和其他 Nginx 服务抢端口。它仍然是静态前端，flag 和解码逻辑对参赛者可见；不要把真实密钥或真实资产放入仓库。
-
-如果修改仓库名，必须同步修改 `vite.config.mjs` 和 `vite.config.ts` 中的 Pages base，例如仓库名为 `NewName` 时改为 `/NewName/`。如果绑定自定义域名并从域名根路径提供站点，则应改成 `/`，并在 GitHub Pages 设置中配置 Custom domain。
-
-## 1. 部署前的安全边界
-
-当前题目的 flag、XOR payload 和解码逻辑都在浏览器端。它适合练习赛和招新题，但不能把它当作真正的保密系统。熟悉开发者工具的参赛者可以查看前端代码并复现解码过程。
-
-不要把真实 NFT、真实钱包、真实私钥、云平台密钥或数据库密码放进仓库、`.env`、网页源码或构建产物。本题只使用练习数据。
-
-## 2. 推荐架构
+## 1. 部署结构
 
 ```text
-浏览器
+做题者浏览器
   |
-  | HTTPS :443
+  | http://服务器公网IP:8088/
   v
-Nginx
+服务器防火墙 / 云安全组：允许 TCP 8088
   |
-  | 独立域名，例如 challenge.example.com
   v
-/var/www/chunni-bang/current/dist/index.html
+Nginx：listen 8088
+  |
+  v
+/var/www/chunni-bang/current/
+  ├── index.html
+  ├── assets/
+  └── imgs/
 ```
 
-如果服务器上已经有其他网站或 API，不要修改它们现有的 `server` 配置。为本题使用独立域名或独立子域名，新增一个 Nginx `server` 块即可。静态文件不会和其他服务争抢 Node 端口。
+如果服务器上已有 Nginx，只新增一个监听 `8088` 的站点配置。不要改动现有站点的 `80`、`443` 配置，也不要把 `npm run dev` 暴露到公网。
 
-## 3. 本地构建
+## 2. 部署前准备
 
-在有源码的电脑上执行：
+需要准备：
 
-```powershell
-cd D:\_projects\fcg\q2-copy
-npm install
-npm test
-npm run build
-```
+- 服务器的公网 IPv4 地址，例如 `203.0.113.10`；
+- 一个可以通过 SSH 登录的服务器账号；
+- 服务器运行 Ubuntu/Debian，并已安装 Nginx；
+- 服务器云平台的安全组/防火墙配置权限。
 
-构建成功后，发布目录是 `dist/`。发布前确认：
-
-- `npm test` 没有失败；
-- `npm run build` 成功；
-- `dist/index.html` 存在；
-- `dist/assets/` 中有 JS、CSS 和图片资源；
-- 题目中没有放入真实密钥或真实资产。
-
-## 4. 第一次准备服务器
-
-以下示例适用于 Ubuntu/Debian。把 `example.com`、用户名和服务器 IP 换成自己的值。
-
-### 4.1 安装 Nginx 和基础工具
+本指南用 `8088` 举例。先通过 SSH 登录服务器：
 
 ```bash
-sudo apt update
-sudo apt install -y nginx rsync curl
-sudo systemctl enable --now nginx
+ssh YOUR_USER@YOUR_SERVER_IP
 ```
 
-如果服务器已有 Nginx，不要重复安装；先确认状态：
+确认 Nginx 正常：
 
 ```bash
 sudo nginx -t
 sudo systemctl status nginx --no-pager
 ```
 
-### 4.2 创建独立目录
+## 3. 检查端口并创建目录
+
+检查 `8088` 是否已有程序监听：
+
+```bash
+sudo ss -ltnp 'sport = :8088'
+```
+
+如果没有输出，通常表示端口空闲。如果看到已有服务，**不要停止它**；改选 `18080` 等端口，并记下新端口，后续步骤全部使用同一个端口。
+
+创建发布目录。命令中的 `YOUR_USER` 换成 SSH 登录用户名：
 
 ```bash
 sudo mkdir -p /var/www/chunni-bang/releases
-sudo chown -R "$USER":"$USER" /var/www/chunni-bang
+sudo chown -R YOUR_USER:YOUR_USER /var/www/chunni-bang
+mkdir -p /var/www/chunni-bang/releases/20261007-01
 ```
 
-这里使用 `releases/` 保存每次发布，`current` 是当前版本的软链接。这样回滚时只需要切换软链接，不用覆盖正在运行的目录。
+`releases/` 保存每次发布的文件，`current` 会指向当前使用的版本，方便回滚。
 
-## 5. 上传构建文件
+## 4. 在自己的电脑构建网页
 
-### 方案 A：从本地上传 `dist/`（推荐）
-
-在 Windows PowerShell 中执行。首次连接会询问是否信任服务器指纹。
+在项目目录运行：
 
 ```powershell
-scp -r .\dist\* user@example.com:/var/www/chunni-bang/releases/20261002-01/
-```
-
-如果目标发布目录不存在，先在服务器执行：
-
-```bash
-mkdir -p /var/www/chunni-bang/releases/20261002-01
-```
-
-上传完成后，在服务器执行：
-
-```bash
-ln -sfn /var/www/chunni-bang/releases/20261002-01 /var/www/chunni-bang/current
-```
-
-### 方案 B：服务器从 GitHub 拉源码并构建
-
-只有在服务器需要参与构建时才使用这个方案。服务器需要 Node.js LTS 和 Git：
-
-```bash
-sudo apt install -y git
-git clone https://github.com/OWNER/REPOSITORY.git /var/www/chunni-bang/source
-cd /var/www/chunni-bang/source
+cd D:\_projects\fcg\q2-copy
 npm ci
 npm test
 npm run build
-mkdir -p /var/www/chunni-bang/releases/20261002-01
-cp -a dist/. /var/www/chunni-bang/releases/20261002-01/
-ln -sfn /var/www/chunni-bang/releases/20261002-01 /var/www/chunni-bang/current
 ```
 
-服务器上不建议运行 `npm run dev`，它是开发服务器，不适合公开暴露。
+确认构建成功且 `dist/` 包含 `index.html`、`assets/` 和 `imgs/`：
 
-## 6. 配置 Nginx
+```powershell
+Get-ChildItem .\dist
+```
 
-创建新配置文件，不要直接覆盖其他站点：
+上传的是 `dist/` 里的内容，不是整个源码仓库。不要上传 `node_modules/`、`.env` 或密钥文件。
+
+## 5. 上传到服务器
+
+在本机 PowerShell 执行，替换用户名和服务器 IP：
+
+```powershell
+scp -r .\dist\* YOUR_USER@YOUR_SERVER_IP:/var/www/chunni-bang/releases/20261007-01/
+```
+
+如果 SSH 首次连接，先核对服务器指纹再确认。上传后重新 SSH 登录服务器，检查文件：
 
 ```bash
-sudo nano /etc/nginx/sites-available/chunni-bang
+find /var/www/chunni-bang/releases/20261007-01 -maxdepth 2 -type f | head -30
 ```
 
-写入以下内容：
+列表中应能看到 `index.html`、`assets` 下的 JS/CSS 文件以及 `imgs` 资源。
+
+将 `current` 指向新版本：
+
+```bash
+ln -sfn /var/www/chunni-bang/releases/20261007-01 /var/www/chunni-bang/current
+```
+
+## 6. 添加 Nginx 端口配置
+
+创建新的站点配置文件，不要覆盖其他网站配置：
+
+```bash
+sudo nano /etc/nginx/sites-available/chunni-bang-8088
+```
+
+写入：
 
 ```nginx
 server {
-    listen 80;
-    listen [::]:80;
-
-    server_name challenge.example.com;
+    listen 8088;
+    listen [::]:8088;
+    server_name _;
 
     root /var/www/chunni-bang/current;
     index index.html;
 
-    # React/Vite 单页应用需要回退到 index.html
     location / {
         try_files $uri $uri/ /index.html;
     }
 
-    # 不缓存入口文件，避免发布后用户拿到旧的资源清单
     location = /index.html {
         add_header Cache-Control "no-store" always;
     }
 
-    # Vite 生成的带 hash 资源可以长期缓存
     location ~* \.(?:js|css|png|jpg|jpeg|gif|webp|ico|svg|woff2?)$ {
         expires 7d;
         add_header Cache-Control "public, max-age=604800, immutable";
@@ -168,140 +143,143 @@ server {
 }
 ```
 
-启用配置并检查：
+启用新配置并检查语法：
 
 ```bash
-sudo ln -sfn /etc/nginx/sites-available/chunni-bang /etc/nginx/sites-enabled/chunni-bang
+sudo ln -sfn /etc/nginx/sites-available/chunni-bang-8088 /etc/nginx/sites-enabled/chunni-bang-8088
 sudo nginx -t
+```
+
+只有当 `nginx -t` 显示语法正常后，才平滑重载 Nginx：
+
+```bash
 sudo systemctl reload nginx
 ```
 
-`nginx -t` 必须显示配置语法正常后才能 reload。不要为了修复本题而执行 `systemctl restart nginx`，因为重启可能影响服务器上的其他服务；优先使用平滑的 `reload`。
+使用 `reload`，不要为了本项目执行 `restart`；reload 会让 Nginx 平滑加载配置，避免中断其他站点。
 
-## 7. DNS 和 HTTPS
+## 7. 放行服务器端口
 
-在 DNS 服务商处添加：
+必须同时检查服务器本机防火墙和云平台安全组，两处都可能拦截访问。
+
+### 7.1 Ubuntu UFW（如果已启用）
+
+检查状态：
+
+```bash
+sudo ufw status
+```
+
+只有当状态为 `active` 时才执行：
+
+```bash
+sudo ufw allow 8088/tcp
+```
+
+不要执行 `ufw disable`，也不要开放不相关端口。
+
+### 7.2 云服务器安全组/云防火墙
+
+登录云平台控制台，在这台服务器绑定的安全组中添加一条**入站**规则：
 
 ```text
-类型：A
-主机记录：challenge
-值：服务器公网 IPv4
+协议：TCP
+端口：8088
+来源：0.0.0.0/0（任何公网访客）
 ```
 
-等待 DNS 生效后，用浏览器访问 `http://challenge.example.com`。确认本题正常后再申请 HTTPS：
+IPv6 公网访问时还需按云平台要求添加 IPv6 来源规则。安全组只开放题目端口，不要为了方便开放所有端口。
+
+如果比赛只允许校园网或组织成员访问，把来源限制为对应的公网 IP/CIDR，不要使用 `0.0.0.0/0`。
+
+## 8. 验证访问
+
+先在服务器本机检查 Nginx 是否响应：
 
 ```bash
-sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d challenge.example.com
+curl -I http://127.0.0.1:8088/
+curl -I http://127.0.0.1:8088/imgs/壁纸.jpeg
 ```
 
-Certbot 会询问是否跳转 HTTPS，建议选择重定向。续期测试：
+预期返回 `HTTP/1.1 200 OK`。然后从自己的电脑浏览器打开：
 
-```bash
-sudo certbot renew --dry-run
+```text
+http://YOUR_SERVER_PUBLIC_IP:8088/
 ```
 
-如果服务器有云防火墙或安全组，还需要放行 TCP `80` 和 `443`；不要开放开发服务器端口 `5173`。
+如果网页能打开，再把这个地址发给做题者。用浏览器确认桌面壁纸、图标、记忆配对游戏和钱包恢复台都能使用。
 
-## 8. 发布新版本和回滚
+## 9. 更新版本和回滚
 
-每次发布使用新的目录名，例如：
+每次更新使用新的发布目录，例如 `20261008-01`：
+
+1. 本机重新执行 `npm test` 和 `npm run build`；
+2. 在服务器创建新发布目录：
 
 ```bash
-mkdir -p /var/www/chunni-bang/releases/20261003-01
-# 上传新的 dist/* 到这个目录后执行：
-ln -sfn /var/www/chunni-bang/releases/20261003-01 /var/www/chunni-bang/current
+mkdir -p /var/www/chunni-bang/releases/20261008-01
+```
+
+3. 从本机上传新的 `dist/*` 到该目录；
+4. 在服务器切换链接：
+
+```bash
+ln -sfn /var/www/chunni-bang/releases/20261008-01 /var/www/chunni-bang/current
 sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-查看当前版本：
+回滚只需把 `current` 指回上一版本：
 
 ```bash
-readlink -f /var/www/chunni-bang/current
-```
-
-回滚到上一版本：
-
-```bash
-ln -sfn /var/www/chunni-bang/releases/20261002-01 /var/www/chunni-bang/current
+ln -sfn /var/www/chunni-bang/releases/20261007-01 /var/www/chunni-bang/current
 sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-确认新版本稳定后，再清理旧发布目录。不要删除 `current` 指向的目录。
-
-## 9. 部署后检查清单
-
-```bash
-curl -I https://challenge.example.com/
-curl -I https://challenge.example.com/assets/<某个资源文件>
-sudo nginx -t
-sudo tail -n 50 /var/log/nginx/error.log
-```
-
-浏览器中检查：
-
-1. 首页能打开，壁纸和图标正常显示；
-2. 刷新任意路径不会出现 Nginx 404；
-3. 档案、浏览器、游戏、解密和恢复台都能打开；
-4. 恢复台能依次显示种子、私钥、地址并完成 flag 验证；
-5. 地址栏显示 HTTPS，证书没有警告；
-6. 其他已有域名和服务仍然正常。
+不要删除 `current` 当前指向的目录。确认新版本正常后再清理旧版本。
 
 ## 10. 常见问题
 
-### 刷新页面出现 404
+### 浏览器连接超时
 
-通常是缺少 `try_files $uri $uri/ /index.html;`。确认该配置位于本题的 `server` 块中，然后执行 `sudo nginx -t && sudo systemctl reload nginx`。
-
-### 页面打开但 JS/CSS 404
-
-检查 `root` 是否指向 `/var/www/chunni-bang/current`，并确认 `current/index.html` 和 `current/assets/` 存在：
+按顺序检查：
 
 ```bash
-ls -la /var/www/chunni-bang/current
-ls -la /var/www/chunni-bang/current/assets
+sudo ss -ltnp 'sport = :8088'
+sudo nginx -t
+curl -I http://127.0.0.1:8088/
 ```
 
-### 新版本看起来没有更新
+如果服务器本机访问正常、外部访问超时，通常是云安全组或服务器防火墙没有放行 TCP `8088`，或者使用了服务器内网 IP。
 
-先确认 `current` 已指向新的发布目录，再执行硬刷新。入口文件配置了 `no-store`，带 hash 的旧资源可以安全缓存。
+### 端口已被占用
 
-### Nginx reload 失败
+选择另一个空闲端口，例如 `18080`，并同时修改 Nginx 的两行 `listen`、UFW 规则、云安全组规则和发给做题者的网址。不要杀掉占用该端口的其他服务。
 
-不要反复重启。先查看完整错误：
+### Nginx 配置检查失败
+
+先看具体报错，不要重启服务：
 
 ```bash
 sudo nginx -t
 sudo journalctl -u nginx -n 50 --no-pager
 ```
 
-常见原因是 `server_name` 重复、括号缺失或端口配置冲突。只修改本题新增的配置文件，避免影响其他站点。
+只检查和修复新建的 `chunni-bang-8088` 配置，不要覆盖其他站点文件。
 
-## 11. GitHub 推送流程
+### HTTP 和 HTTPS
 
-当前本地仓库尚未配置 remote。拿到 GitHub 仓库 URL 后执行：
+本指南示例地址是 HTTP：`http://IP:8088/`，适合公开题目网页，不应用来传输密码、私钥或其他敏感信息。若希望使用 HTTPS，建议使用自己的域名并通过 Nginx 配置证书；直接用 IP 和任意端口获取受信任证书通常不如域名方案简单。
 
-```bash
-git remote add origin https://github.com/OWNER/REPOSITORY.git
-git branch -M main
-git push -u origin main
-```
+## 11. 安全注意事项
 
-如果仓库启用了双因素认证，HTTPS 推送时不能使用 GitHub 登录密码，应使用 Personal Access Token；也可以改用 SSH remote：
+- 本题是静态网页，flag 与解码逻辑在浏览器端，不应当作秘密保存；熟悉 DevTools 的人可以分析前端资源。
+- 不要把真实钱包助记词、私钥、服务器密码、SSH 私钥或云平台密钥放入源码、构建目录或 GitHub。
+- 不要公开开放 SSH、数据库或其他管理端口；这里只开放题目使用的一个 TCP 端口。
+- 服务器只负责提供静态文件，不需要开放 Node/Vite 开发端口 `5173`。
+- 服务器上的其他服务照常保留；如果 Nginx 配置或端口状态不确定，先停下来核对，不要重启或停用其他服务。
 
-```bash
-git remote set-url origin git@github.com:OWNER/REPOSITORY.git
-git push -u origin main
-```
+## 12. GitHub Pages 备用方案
 
-不要把 Personal Access Token、SSH 私钥或服务器密码写进文档、代码、`.env` 或聊天记录。推送前确认：
-
-```bash
-git status --short
-git check-ignore -v node_modules dist .env
-git log --oneline -1
-```
-
-仓库中应该有源码、`public/imgs/`、测试、文档和 `package-lock.json`，不应该有 `node_modules/`、`dist/`、`.env`、私钥或证书文件。
+如果服务器端口不方便开放，仓库仍可通过 GitHub Pages 访问：<https://GamlaNyx.github.io/SpringThief/>。Pages 使用 HTTPS 且不需要管理服务器；部署步骤见仓库 Settings → Pages，Source 选择 **GitHub Actions**。

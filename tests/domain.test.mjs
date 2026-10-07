@@ -39,7 +39,7 @@ function xor(dataHex, addressHex) {
 
 test('address XOR payload repeats the 20-byte address for longer flags', () => {
   const address = '00112233445566778899aabbccddeeff00112233';
-  const expected = 'DLNUCTF{w3lc0m3_t0_w3b3}';
+  const expected = 'DLNUFCG{w3lc0m3_t0_w3b3}';
   const bytes = Buffer.from(expected);
   const data = Buffer.from(bytes.map((value, index) => value ^ parseInt(address.slice((index % 20) * 2, (index % 20) * 2 + 2), 16))).toString('hex');
   assert.equal(xor(data, address), expected);

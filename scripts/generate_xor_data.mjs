@@ -6,7 +6,7 @@ if (!/^[0-9a-f]{40}$/.test(address)) {
   process.exit(1);
 }
 
-const flagBytes = Buffer.from('DLNUCTF{w3lc0m3_t0_w3b3}', 'utf8');
+const flagBytes = Buffer.from('DLNUFCG{w3lc0m3_t0_w3b3}', 'utf8');
 const addressBytes = Buffer.from(address, 'hex');
 const data = Buffer.from(flagBytes.map((value, index) => value ^ addressBytes[index % addressBytes.length]));
 console.log(data.toString('hex'));

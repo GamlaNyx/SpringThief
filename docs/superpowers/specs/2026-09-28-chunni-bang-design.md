@@ -190,7 +190,7 @@ Ethereum address
 
 目标 flag 为：
 
-`DLNUCTF{w3lc0m3_t0_w3b3}`
+`DLNUFCG{w3lc0m3_t0_w3b3}`
 
 实现提供两种可选方案，二选一即可；两种方案都不把 flag 明文放入前端静态资源。
 
@@ -210,7 +210,7 @@ Ethereum address
 2. 将 Ethereum 地址规范化为 20 字节，并按约定编码为可重复使用的字节序列（去掉 `0x` 后解析为十六进制字节）。
 3. 对 `data` 与循环重复的地址字节执行异或，得到 flag 的 UTF-8 字节；形式化表示为 `flag[i] = data[i] XOR addressBytes[i mod 20]`。
 4. 前端只保存 `data` 和异或规则；玩家算出正确地址后，页面执行同样的异或并进行 UTF-8 解码。
-5. 解码结果必须严格匹配 `DLNUCTF{w3lc0m3_t0_w3b3}`，否则显示“地址仍不正确”。
+5. 解码结果必须严格匹配 `DLNUFCG{w3lc0m3_t0_w3b3}`，否则显示“地址仍不正确”。
 
 异或方案必须在配置中明确：字节编码、地址是否去除 `0x`、短数据是否循环、结果长度和 UTF-8 解码方式。不能依赖 JavaScript 字符串逐字符异或。
 
